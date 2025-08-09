@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Day Planner</title>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #6366f1;
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+            --card-bg: #ffffff;
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --border-color: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--card-bg);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 1.5rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-button {
+            padding: 0.75rem;
+            border-radius: 9999px;
+            background-color: #e5e7eb;
+            color: #6b7280;
+            transition: all 0.2s ease-in-out;
+            border: none;
+            cursor: pointer;
+        }
+
+        .nav-button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .nav-button:hover:not(.active) {
+            background-color: #d1d5db;
+        }
+
+        .modal {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background-color: #10b981;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        main {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+        }
+
+        .wake-up-time {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wake-up-time .label-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .wake-up-time label {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        .wake-up-time input {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            font-size: 1rem;
+        }
+        .wake-up-time span {
+            font-weight: 600;
+        }
+
+        .task-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .task-list-header h3 {
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .add-task-button {
+            padding: 0.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 9999px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: background-color 0.2s ease-in-out;
+        }
+        .add-task-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .task-time-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        .task-time-display .remaining.negative {
+            color: #ef4444;
+        }
+        .task-time-display .remaining {
+            color: #22c55e;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .task-item.completed {
+            background-color: #d1fae5;
+        }
+
+        .task-item input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: #22c55e;
+            border-radius: 0.25rem;
+        }
+
+        .task-item .task-text {
+            flex-grow: 1;
+            color: #374151;
+        }
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            color: #6b7280;
+        }
+
+        .task-item .task-text-input {
+            flex-grow: 1;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            font-size: 1rem;
+        }
+        .task-item .time-select {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            font-size: 1rem;
+        }
+
+        .task-item .task-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .task-action-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+            transition: color 0.2s ease-in-out;
+        }
+        .task-action-button.delete:hover { color: #ef4444; }
+        .task-action-button.edit:hover { color: var(--primary-color); }
+        .task-action-button.save:hover { color: #22c55e; }
+
+        .form-area {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .form-area h3 {
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+        .form-area textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            min-height: 10rem;
+            resize: vertical;
+            transition: box-shadow 0.2s ease-in-out;
+        }
+        .form-area textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        .save-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 1.125rem;
+            font-weight: 800;
+            border-radius: 9999px;
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.2s ease-in-out;
+        }
+        .save-button:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.02);
+        }
+
+        .progress-page {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .progress-charts {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .progress-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-nav button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border-color);
+            background-color: #f9fafb;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+        }
+        .progress-nav button:hover {
+            background-color: #e5e7eb;
+        }
+        .progress-nav button.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .progress-history ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .progress-history li {
+            padding: 1rem;
+            background-color: #f9fafb;
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-history .date {
+            font-size: 0.875rem;
+            font-weight: 800;
+            color: #6b7280;
+        }
+
+        .progress-history .summary {
+            margin-top: 0.5rem;
+        }
+
+        .progress-history .summary span {
+            font-weight: 600;
+        }
+        
+        .user-id {
+          text-align: center;
+          font-size: 0.8rem;
+          color: #9ca3af;
+          margin-top: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .header h1 {
+                font-size: 1.25rem;
+            }
+            .nav-button {
+                padding: 0.5rem;
+            }
+            .wake-up-time {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+            .task-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .task-item .task-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            .task-item .task-text-input, .task-item .time-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Notification Modal -->
+        <div id="notification-modal" class="modal"></div>
+
+        <!-- Header and Navigation -->
+        <div class="header">
+            <h1>My Day Planner</h1>
+            <div class="nav-buttons">
+                <button id="main-nav-button" class="nav-button active"><i class="fas fa-list-check"></i></button>
+                <button id="progress-nav-button" class="nav-button"><i class="fas fa-chart-line"></i></button>
+            </div>
+        </div>
+
+        <!-- Main View -->
+        <main id="main-view">
+            <!-- Wake-up Time Section -->
+            <div class="card">
+                <div class="wake-up-time">
+                    <div class="label-group">
+                        <i class="fas fa-clock text-indigo-500"></i>
+                        <label for="wake-up-time">Wake-up Time:</label>
+                    </div>
+                    <div class="flex-items-center">
+                        <input type="time" id="wake-up-time" value="06:00">
+                        <span id="remaining-hours" class="ml-2"> (0.0 hrs left)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Lists -->
+            <div class="card" id="ukhravi-tasks">
+                <div class="task-list-header">
+                    <h3>Ukhravi Deeds</h3>
+                    <button class="add-task-button" onclick="addTask('ukhravi')"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="task-time-display">
+                    <span>Total: <span id="ukhravi-total-hours">0.0</span> hrs</span>
+                    <span>Remaining: <span id="ukhravi-remaining-hours">0.0</span> hrs</span>
+                </div>
+                <ul class="task-list"></ul>
+            </div>
+
+            <div class="card" id="worldly-tasks">
+                <div class="task-list-header">
+                    <h3>Primary Worldly Deeds</h3>
+                    <button class="add-task-button" onclick="addTask('worldly')"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="task-time-display">
+                    <span>Total: <span id="worldly-total-hours">0.0</span> hrs</span>
+                    <span>Remaining: <span id="worldly-remaining-hours">0.0</span> hrs</span>
+                </div>
+                <ul class="task-list"></ul>
+            </div>
+
+            <div class="card" id="other-tasks">
+                <div class="task-list-header">
+                    <h3>Praying, Eating & Chores</h3>
+                    <button class="add-task-button" onclick="addTask('other')"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="task-time-display">
+                    <span>Total: <span id="other-total-hours">0.0</span> hrs</span>
+                    <span>Remaining: <span id="other-remaining-hours">0.0</span> hrs</span>
+                </div>
+                <ul class="task-list"></ul>
+            </div>
+            
+            <!-- Goals & Insights -->
+            <div class="card">
+                <div class="form-area">
+                    <i class="fas fa-lightbulb text-indigo-500"></i>
+                    <h3>Today's Insights</h3>
+                </div>
+                <textarea id="todays-insights" placeholder="What did you learn today? What went well or could be improved?"></textarea>
+                <div class="form-area mt-4">
+                    <i class="fas fa-bullseye text-indigo-500"></i>
+                    <h3>Tomorrow's Goals</h3>
+                </div>
+                <textarea id="tomorrow-goals" placeholder="What do you want to achieve tomorrow?"></textarea>
+            </div>
+
+            <!-- Save Button -->
+            <div class="text-center pb-4">
+                <button class="save-button" onclick="saveDailyData()">
+                    <i class="fas fa-save"></i>
+                    Save My Day
+                </button>
+            </div>
+        </main>
+
+        <!-- Progress View -->
+        <main id="progress-view" style="display: none;">
+            <div class="card progress-page">
+                <h2 class="text-center text-2xl font-extrabold text-indigo-600">Your Progress</h2>
+                <div class="progress-nav">
+                    <button id="daily-progress-btn" class="active">Daily</button>
+                    <button id="weekly-progress-btn">Weekly</button>
+                    <button id="monthly-progress-btn">Monthly</button>
+                </div>
+                <div class="progress-charts">
+                    <canvas id="progress-chart"></canvas>
+                </div>
+            </div>
+            <div class="card progress-history">
+                <h3 class="text-xl font-bold">Past Insights & Goals</h3>
+                <ul id="history-list">
+                    <!-- History items will be dynamically added here -->
+                </ul>
+            </div>
+            <div class="user-id">User ID: <span id="user-id"></span></div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            document.getElementById('user-id').textContent = userId;
+
+            let data = loadData(userId);
+            let progressChart;
+            let currentProgressView = 'daily';
+
+            const elements = {
+                mainView: document.getElementById('main-view'),
+                progressView: document.getElementById('progress-view'),
+                mainNavButton: document.getElementById('main-nav-button'),
+                progressNavButton: document.getElementById('progress-nav-button'),
+                wakeUpTimeInput: document.getElementById('wake-up-time'),
+                remainingHoursSpan: document.getElementById('remaining-hours'),
+                tomorrowGoalsTextarea: document.getElementById('tomorrow-goals'),
+                todaysInsightsTextarea: document.getElementById('todays-insights'),
+                notificationModal: document.getElementById('notification-modal'),
+            };
+
+            const timeAllocations = [
+                { value: 0.25, label: "15 min" },
+                { value: 0.5, label: "30 min" },
+                { value: 1, label: "1 hr" },
+                { value: 1.5, label: "1.5 hr" },
+                { value: 2, label: "2 hr" },
+                { value: 2.5, label: "2.5 hr" },
+                { value: 3, label: "3 hr" },
+            ];
+
+            function loadData(id) {
+                const storedData = localStorage.getItem(`plannerData_${id}`);
+                const storedHistory = localStorage.getItem(`plannerHistory_${id}`);
+                if (storedData) {
+                    const today = new Date().toISOString().slice(0, 10);
+                    const savedData = JSON.parse(storedData);
+                    // Check if saved data is from a different day
+                    if (savedData.date === today) {
+                        return {
+                            data: savedData,
+                            history: storedHistory ? JSON.parse(storedHistory) : []
+                        };
+                    } else {
+                        // If it's a new day, log the old data to history and start fresh
+                        let history = storedHistory ? JSON.parse(storedHistory) : [];
+                        history.push(savedData);
+                        localStorage.setItem(`plannerHistory_${id}`, JSON.stringify(history));
+                    }
+                }
+                // Return default data for a new day
+                return {
+                    data: {
+                        date: new Date().toISOString().slice(0, 10),
+                        wakeUpTime: '06:00',
+                        tasks: { ukhravi: [], worldly: [], other: [] },
+                        tomorrowGoals: '',
+                        todaysInsights: '',
+                    },
+                    history: storedHistory ? JSON.parse(storedHistory) : []
+                };
+            }
+
+            function saveData() {
+                localStorage.setItem(`plannerData_${userId}`, JSON.stringify(data.data));
+            }
+            
+            function showNotification(message) {
+                elements.notificationModal.textContent = message;
+                elements.notificationModal.classList.add('show');
+                setTimeout(() => {
+                    elements.notificationModal.classList.remove('show');
+                }, 3000);
+            }
+
+            function renderTasks() {
+                const categories = ['ukhravi', 'worldly', 'other'];
+                const remainingHours = 24 - (parseInt(data.data.wakeUpTime.split(':')[0]) + parseInt(data.data.wakeUpTime.split(':')[1]) / 60);
+
+                // Split time equally
+                const hoursPerCategory = {
+                    ukhravi: remainingHours / 3,
+                    worldly: remainingHours / 3,
+                    other: remainingHours / 3,
+                };
+
+                elements.wakeUpTimeInput.value = data.data.wakeUpTime;
+                elements.remainingHoursSpan.textContent = ` (${remainingHours.toFixed(1)} hrs left)`;
+
+                categories.forEach(category => {
+                    const taskListEl = document.querySelector(`#${category}-tasks .task-list`);
+                    const totalHoursEl = document.getElementById(`${category}-total-hours`);
+                    const remainingHoursEl = document.getElementById(`${category}-remaining-hours`);
+                    
+                    taskListEl.innerHTML = '';
+                    const allocatedTime = data.data.tasks[category].reduce((sum, task) => sum + parseFloat(task.time), 0);
+                    const timeRemaining = hoursPerCategory[category] - allocatedTime;
+
+                    totalHoursEl.textContent = hoursPerCategory[category].toFixed(1);
+                    remainingHoursEl.textContent = timeRemaining.toFixed(1);
+                    remainingHoursEl.classList.toggle('negative', timeRemaining < 0);
+
+                    data.data.tasks[category].forEach(task => {
+                        const li = document.createElement('li');
+                        li.className = `task-item ${task.completed ? 'completed' : ''}`;
+                        li.dataset.taskId = task.id;
+                        
+                        const taskContent = `
+                            <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleCompleted('${category}', '${task.id}')">
+                            ${task.isEditing ? `
+                                <input type="text" class="task-text-input" value="${task.text}" placeholder="Enter task name">
+                                <select class="time-select">
+                                    ${timeAllocations.map(t => `<option value="${t.value}" ${task.time == t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+                                </select>
+                            ` : `
+                                <span class="task-text">${task.text} (${task.time * 60} min)</span>
+                            `}
+                            <div class="task-actions">
+                                <button class="task-action-button delete" onclick="removeTask('${category}', '${task.id}')"><i class="fas fa-trash"></i></button>
+                                ${task.isEditing ? `
+                                    <button class="task-action-button save" onclick="saveTask('${category}', '${task.id}')"><i class="fas fa-save"></i></button>
+                                ` : `
+                                    <button class="task-action-button edit" onclick="editTask('${category}', '${task.id}')"><i class="fas fa-edit"></i></button>
+                                `}
+                            </div>
+                        `;
+                        li.innerHTML = taskContent;
+                        taskListEl.appendChild(li);
+                    });
+                });
+            }
+
+            function renderGoalsAndInsights() {
+                elements.tomorrowGoalsTextarea.value = data.data.tomorrowGoals;
+                elements.todaysInsightsTextarea.value = data.data.todaysInsights;
+            }
+
+            window.addTask = (category) => {
+                const newTask = {
+                    id: Date.now().toString(),
+                    text: '',
+                    time: 0.5,
+                    completed: false,
+                    isEditing: true
+                };
+                data.data.tasks[category].push(newTask);
+                renderTasks();
+                saveData();
+            };
+
+            window.removeTask = (category, taskId) => {
+                data.data.tasks[category] = data.data.tasks[category].filter(t => t.id !== taskId);
+                renderTasks();
+                saveData();
+            };
+
+            window.editTask = (category, taskId) => {
+                const task = data.data.tasks[category].find(t => t.id === taskId);
+                if (task) {
+                    task.isEditing = true;
+                    renderTasks();
+                }
+            };
+            
+            window.saveTask = (category, taskId) => {
+                const taskItem = document.querySelector(`[data-task-id="${taskId}"]`);
+                const taskTextInput = taskItem.querySelector('.task-text-input');
+                const timeSelect = taskItem.querySelector('.time-select');
+                
+                const task = data.data.tasks[category].find(t => t.id === taskId);
+                if (task) {
+                    task.text = taskTextInput.value;
+                    task.time = parseFloat(timeSelect.value);
+                    task.isEditing = false;
+                    renderTasks();
+                    saveData();
+                }
+            };
+            
+            window.toggleCompleted = (category, taskId) => {
+                const task = data.data.tasks[category].find(t => t.id === taskId);
+                if (task) {
+                    task.completed = !task.completed;
+                    renderTasks();
+                    saveData();
+                }
+            };
+
+            window.saveDailyData = () => {
+                data.data.tomorrowGoals = elements.tomorrowGoalsTextarea.value;
+                data.data.todaysInsights = elements.todaysInsightsTextarea.value;
+
+                // Create a progress entry for today
+                const todayTotalTasks = Object.values(data.data.tasks).flat().length;
+                const todayCompletedTasks = Object.values(data.data.tasks).flat().filter(t => t.completed).length;
+                const todayTotalTime = Object.values(data.data.tasks).flat().reduce((acc, t) => acc + parseFloat(t.time), 0);
+                
+                const progressEntry = {
+                    date: data.data.date,
+                    totalTasks: todayTotalTasks,
+                    completedTasks: todayCompletedTasks,
+                    totalTime: todayTotalTime,
+                    insights: data.data.todaysInsights,
+                    goals: data.data.tomorrowGoals
+                };
+
+                const existingIndex = data.history.findIndex(entry => entry.date === progressEntry.date);
+                if (existingIndex !== -1) {
+                    data.history[existingIndex] = progressEntry;
+                } else {
+                    data.history.push(progressEntry);
+                }
+
+                localStorage.setItem(`plannerHistory_${userId}`, JSON.stringify(data.history));
+                saveData();
+                showNotification("Today's data and progress saved successfully!");
+            };
+
+            elements.wakeUpTimeInput.addEventListener('change', () => {
+                data.data.wakeUpTime = elements.wakeUpTimeInput.value;
+                renderTasks();
+                saveData();
+            });
+
+            elements.tomorrowGoalsTextarea.addEventListener('input', () => {
+                data.data.tomorrowGoals = elements.tomorrowGoalsTextarea.value;
+                saveData();
+            });
+
+            elements.todaysInsightsTextarea.addEventListener('input', () => {
+                data.data.todaysInsights = elements.todaysInsightsTextarea.value;
+                saveData();
+            });
+
+            function showMainView() {
+                elements.mainView.style.display = 'grid';
+                elements.progressView.style.display = 'none';
+                elements.mainNavButton.classList.add('active');
+                elements.progressNavButton.classList.remove('active');
+                renderTasks();
+                renderGoalsAndInsights();
+            }
+
+            function showProgressView() {
+                elements.mainView.style.display = 'none';
+                elements.progressView.style.display = 'flex';
+                elements.progressNavButton.classList.add('active');
+                elements.mainNavButton.classList.remove('active');
+                renderProgressPage();
+            }
+
+            elements.mainNavButton.addEventListener('click', showMainView);
+            elements.progressNavButton.addEventListener('click', showProgressView);
+            document.getElementById('daily-progress-btn').addEventListener('click', () => {
+                currentProgressView = 'daily';
+                renderProgressPage();
+            });
+            document.getElementById('weekly-progress-btn').addEventListener('click', () => {
+                currentProgressView = 'weekly';
+                renderProgressPage();
+            });
+            document.getElementById('monthly-progress-btn').addEventListener('click', () => {
+                currentProgressView = 'monthly';
+                renderProgressPage();
+            });
+            
+            function renderProgressPage() {
+                const history = data.history;
+                
+                // Render History List
+                const historyListEl = document.getElementById('history-list');
+                historyListEl.innerHTML = '';
+                const recentHistory = history.slice(-5).reverse();
+                if (recentHistory.length === 0) {
+                     historyListEl.innerHTML = '<li class="p-4 text-center text-gray-500">No past data available.</li>';
+                } else {
+                    recentHistory.forEach(entry => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <p class="date">${entry.date}</p>
+                            <p class="summary"><span>Insights:</span> ${entry.insights || 'N/A'}</p>
+                            <p class="summary"><span>Goals:</span> ${entry.goals || 'N/A'}</p>
+                        `;
+                        historyListEl.appendChild(li);
+                    });
+                }
+
+                // Render Chart
+                if (progressChart) {
+                    progressChart.destroy();
+                }
+
+                const chartData = getChartData(currentProgressView, history);
+                const ctx = document.getElementById('progress-chart').getContext('2d');
+                progressChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [
+                            {
+                                label: 'Completed Tasks',
+                                data: chartData.completed,
+                                backgroundColor: '#4ade80',
+                                borderRadius: 5,
+                            },
+                            {
+                                label: 'Total Tasks',
+                                data: chartData.total,
+                                backgroundColor: '#60a5fa',
+                                borderRadius: 5,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: chartData.title
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Tasks'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            function getChartData(view, history) {
+                const today = new Date().toISOString().slice(0, 10);
+                const filteredHistory = history.filter(entry => entry.date <= today);
+                
+                let labels = [];
+                let completed = [];
+                let total = [];
+                let title = '';
+
+                if (view === 'daily') {
+                    title = 'Daily Progress (Last 7 Days)';
+                    const lastSevenDays = filteredHistory.slice(-7);
+                    labels = lastSevenDays.map(d => d.date);
+                    completed = lastSevenDays.map(d => d.completedTasks);
+                    total = lastSevenDays.map(d => d.totalTasks);
+                } else if (view === 'weekly') {
+                    title = 'Weekly Progress (Last 4 Weeks)';
+                    const weeks = {};
+                    filteredHistory.forEach(d => {
+                        const date = new Date(d.date);
+                        const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
+                        const weekKey = weekStart.toISOString().slice(0, 10);
+                        if (!weeks[weekKey]) {
+                            weeks[weekKey] = { completed: 0, total: 0 };
+                        }
+                        weeks[weekKey].completed += d.completedTasks;
+                        weeks[weekKey].total += d.totalTasks;
+                    });
+                    const weekKeys = Object.keys(weeks).sort().slice(-4);
+                    labels = weekKeys.map(k => k);
+                    completed = weekKeys.map(k => weeks[k].completed);
+                    total = weekKeys.map(k => weeks[k].total);
+                } else if (view === 'monthly') {
+                    title = 'Monthly Progress (Last 6 Months)';
+                    const months = {};
+                    filteredHistory.forEach(d => {
+                        const monthKey = d.date.slice(0, 7);
+                        if (!months[monthKey]) {
+                            months[monthKey] = { completed: 0, total: 0 };
+                        }
+                        months[monthKey].completed += d.completedTasks;
+                        months[monthKey].total += d.totalTasks;
+                    });
+                    const monthKeys = Object.keys(months).sort().slice(-6);
+                    labels = monthKeys.map(k => k);
+                    completed = monthKeys.map(k => months[k].completed);
+                    total = monthKeys.map(k => months[k].total);
+                }
+
+                return { labels, completed, total, title };
+            }
+
+            showMainView();
+        });
+    </script>
+</body>
+</html>
