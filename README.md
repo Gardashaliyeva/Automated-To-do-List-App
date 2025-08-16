@@ -22,3 +22,6 @@ My Day Planner is a simple, single-page web application for managing your daily 
 * **Vanilla JavaScript**: For all application logic and data management without any frameworks.
 * **Chart.js**: A lightweight library used for creating the progress charts.
 * **Font Awesome**: Used for the icons.
+
+## Prototype
+[Automated To-Do List App](https://automated-to-do-list-app.netlify.app/)
